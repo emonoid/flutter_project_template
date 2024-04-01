@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import '/core/common/cubits/locale_cubit/language_cubit.dart';
+import '/core/local_data/shared_preference_helper.dart';
+import '/core/utils/enums.dart';
+
+import '/core/common/cubits/app_user/app_user_cubit.dart';
+import '/features/authentication/data/datasources/auth.remote.datasource.dart';
+import '/features/authentication/data/repositories/auth.repository.impl.dart';
+import '/features/authentication/domain/usecases/login.dart';
+import 'package:get_it/get_it.dart';
+import 'core/common/cubits/theme/theme_cubit.dart';
+import 'core/service/network_service_impl.dart';
+import 'features/authentication/domain/repositories/auth.repository.dart';
+import 'features/authentication/presentation/cubit/auth_cubit.dart';
+
+final serviceLocator = GetIt.instance;
+
+Future<void> initDependencies() async {
+  await LocalData.init();
+  // core
+  serviceLocator.registerLazySingleton(() => AppUserCubit());
+  serviceLocator.registerLazySingleton(() => LocalData());
+  serviceLocator.registerLazySingleton(() => LanguageCubit(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => ThemeCubit(serviceLocator()));
+
+  // auth
+  _intiAuth();
+}
+
+void _intiAuth() {
+  serviceLocator
+    // network api service
+    ..registerFactory(() => NetworkServicesImpl())
+
+    // datasource
+    ..registerFactory<AuthRemoteDataSource>(
+      () => AuthRemoteDataSourceImpl(networkApiServices: serviceLocator()),
+    )
+
+    // repository
+    ..registerFactory<AuthRepository>(
+        () => AuthRepositoryImpl(serviceLocator()))
+
+    // usecase
+    ..registerFactory(() => UserLogin(serviceLocator()))
+
+    // bloc/cubit
+    ..registerFactory(() => AuthCubit(userLogin: serviceLocator()));
+}
